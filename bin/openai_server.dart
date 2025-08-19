@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:dotenv/dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -35,7 +36,9 @@ void main() async {
     return Response.ok(response.body, headers: {'Content-Type': 'application/json'});
   });
 
-  final handler = const Pipeline().addMiddleware(logRequests()).addHandler(router);
+  final handler = const Pipeline().addMiddleware(logRequests())
+      .addMiddleware(corsHeaders())
+      .addHandler(router);
 
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);

@@ -68,7 +68,8 @@ void main() async {
   }))
       .addHandler(router);
 
-  final port = int.parse(Platform.environment['PORT'] ?? '8080');
+  final port = int.parse(Platform.environment['PORT'] ?? '10000');
+  //8080
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);
   print('Server is running on port ${server.port}');
 }

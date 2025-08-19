@@ -9,10 +9,10 @@ import 'package:http/http.dart' as http;
 
 void main() async {
   final env = DotEnv()..load();
-
   final apiKey = env['OPENAI_API_KEY'];
 
   final router = Router();
+
 
   router.post('/ask', (Request request) async {
     try {
@@ -36,22 +36,38 @@ void main() async {
 
       return Response.ok(response.body, headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       });
     } catch (e) {
       return Response.internalServerError(
         body: jsonEncode({'error': e.toString()}),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       );
     }
   });
 
-  //  CORS
+
+  router.options('/<ignored|.*>', (Request request) {
+    return Response.ok('OK', headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+    });
+  });
+
+
   final handler = const Pipeline()
       .addMiddleware(logRequests())
-      .addMiddleware(corsHeaders()) //
+      .addMiddleware(corsHeaders(headers: {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+  }))
       .addHandler(router);
 
-  // open server
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);
   print('Server is running on port ${server.port}');

@@ -3,13 +3,32 @@ import 'dart:convert';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
-import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:dotenv/dotenv.dart';
 import 'package:http/http.dart' as http;
 
+Response _cors(Response response) {
+  return response.change(headers: {
+    ...response.headers,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  });
+}
+
+Middleware corsMiddleware() {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      if (request.method == 'OPTIONS') {
+        return _cors(Response.ok(''));
+      }
+      final response = await innerHandler(request);
+      return _cors(response);
+    };
+  };
+}
+
 void main() async {
   final env = DotEnv()..load();
-
   final apiKey = env['OPENAI_API_KEY'];
 
   final router = Router();
@@ -33,14 +52,18 @@ void main() async {
       }),
     );
 
-    return Response.ok(response.body, headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      response.body,
+      headers: {'Content-Type': 'application/json'},
+    );
   });
 
-  final handler = const Pipeline().addMiddleware(logRequests())
-      .addMiddleware(corsHeaders())
+  final handler = const Pipeline()
+      .addMiddleware(logRequests())
+      .addMiddleware(corsMiddleware())
       .addHandler(router);
 
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);
-  print('Listening on port ${server.port}');
+  print('Server listening on port ${server.port}');
 }

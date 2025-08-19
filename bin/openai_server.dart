@@ -13,7 +13,6 @@ void main() async {
 
   final router = Router();
 
-
   router.post('/ask', (Request request) async {
     try {
       final body = await request.readAsString();
@@ -34,10 +33,23 @@ void main() async {
         }),
       );
 
-      return Response.ok(response.body, headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      });
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final reply = decoded['choices'][0]['message']['content'];
+
+        return Response.ok(jsonEncode({'reply': reply}), headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+      } else {
+        return Response.internalServerError(
+          body: jsonEncode({'error': 'OpenAI Error: ${response.body}'}),
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        );
+      }
     } catch (e) {
       return Response.internalServerError(
         body: jsonEncode({'error': e.toString()}),
@@ -49,7 +61,6 @@ void main() async {
     }
   });
 
-
   router.options('/<ignored|.*>', (Request request) {
     return Response.ok('OK', headers: {
       'Access-Control-Allow-Origin': '*',
@@ -57,7 +68,6 @@ void main() async {
       'Access-Control-Allow-Headers': '*',
     });
   });
-
 
   final handler = const Pipeline()
       .addMiddleware(logRequests())
@@ -69,7 +79,6 @@ void main() async {
       .addHandler(router);
 
   final port = int.parse(Platform.environment['PORT'] ?? '10000');
-  //8080
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);
   print('Server is running on port ${server.port}');
 }

@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 
 void main() async {
   final env = DotEnv()..load();
-  final apiKey = env['OPENAI_API_KEY'];
+  final apiKey = env['OPENAI_API_KEY'] ?? Platform.environment['OPENAI_API_KEY'];
 
   final router = Router();
 
